@@ -4,14 +4,14 @@ import cors from 'cors';
 import cookieParser from 'cookie-parser';
 import { notFoundRoute } from './error/notFoundRoute';
 import { globalErrorHandler } from './error/globalErrorHandler';
+import { apiLimiter } from './middlewares/rateLimit';
 
 const app: Application = express();
 
 // Middleware
 app.use(cors());
 app.use(express.json());
-
-app.use(express.json());
+app.use(apiLimiter);
 app.use(cookieParser());
 
 app.use(express.urlencoded({ extended: true }));

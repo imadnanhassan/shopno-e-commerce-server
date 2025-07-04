@@ -1,5 +1,7 @@
 import { v2 as cloudinary } from 'cloudinary';
 import { env } from '../config/env';
+import { AppError } from '../error/AppError';
+
 
 cloudinary.config({
   cloud_name: env.CLOUDINARY_CLOUD_NAME,
@@ -10,6 +12,10 @@ cloudinary.config({
 export const sendImageToCloudinary = async (
   file: Express.Multer.File
 ): Promise<string> => {
+  if (!file) {
+    throw new AppError('No file uploaded', 400);
+  }
+
   try {
     const result = await cloudinary.uploader.upload(file.path, {
       folder: 'ecommerce/products',
@@ -18,10 +24,7 @@ export const sendImageToCloudinary = async (
     });
     return result.secure_url;
   } catch (error) {
-    if (error instanceof Error) {
-      throw new Error(`Cloudinary upload failed: ${error.message}`);
-    } else {
-      throw new Error('Cloudinary upload failed: Unknown error');
-    }
+    const message = error instanceof Error ? error.message : 'Unknown error';
+    throw new AppError(`Cloudinary upload failed: ${message}`, 500);
   }
 };
