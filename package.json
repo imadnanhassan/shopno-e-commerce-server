@@ -1,5 +1,5 @@
 {
-  "name": "server",
+  "name": "shopno-e-commerce-backend",
   "version": "1.0.0",
   "description": "",
   "main": "index.js",
@@ -8,8 +8,16 @@
     "build": "tsc",
     "start": "node dist/server.js"
   },
-  "keywords": [],
-  "author": "",
+  "keywords": [
+    "e-commerce",
+    "backend",
+    "typescript",
+    "nodejs",
+    "express",
+    "mongodb",
+    "shopno"
+  ],
+  "author": "Adnan Hassan",
   "license": "ISC",
   "packageManager": "pnpm@10.12.4",
   "dependencies": {
@@ -21,6 +29,7 @@
     "express": "^5.1.0",
     "jsonwebtoken": "^9.0.2",
     "mongoose": "^8.16.1",
+    "multer": "^2.0.1",
     "nodemailer": "^7.0.4",
     "zod": "^3.25.74"
   },
@@ -31,6 +40,7 @@
     "@types/cors": "^2.8.19",
     "@types/express": "^5.0.3",
     "@types/jsonwebtoken": "^9.0.10",
+    "@types/multer": "^2.0.0",
     "@types/node": "^24.0.10",
     "@types/nodemailer": "^6.4.17",
     "eslint": "^9.30.1",
