@@ -3,7 +3,7 @@ import app from './app';
 
 const PORT = 3000;
 // Establish database connection
-const startServer = async () => {
+export const startServer = async () => {
   const uri =
     'mongodb+srv://online-shop-server:9YmHVmZfX9SV1NBg@cluster0.exf98yb.mongodb.net/onlineShop?retryWrites=true&w=majority&appName=Cluster0';
 
