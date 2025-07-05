@@ -1,92 +1,31 @@
 import { Request, Response } from 'express';
-import jwt from 'jsonwebtoken';
-import bcrypt from 'bcryptjs';
-
-import crypto from 'crypto';
 import { catchAsync } from '../../utils/catchAsync';
-import User from '../users/user.model';
-import { AppError } from '../../error/AppError';
-import { generateOTP } from '../../utils/otp';
-import { sendEmail } from '../../utils/email';
 import { sendResponse } from '../../utils/sendResponse';
-import { UnauthorizeError } from '../../error/unauthorizeError';
-import { sendImageToCloudinary } from '../../utils/sendImageToCloudinary';
+import authService from './auth.service';
+import { JwtPayload } from 'jsonwebtoken';
+import { IUser } from '../users/user.interface';
 
-export const register = catchAsync(async (req: Request, res: Response) => {
+const register = catchAsync(async (req: Request, res: Response) => {
   const { email, password, name } = req.body;
-
-  const user = await User.findOne({ email });
-  if (user) {
-    throw new AppError('User already exists', 400);
-  }
-
-  const otp = generateOTP();
-  const newUser = new User({ email, password, name, role: 'customer' });
-  await newUser.save();
-
-  await sendEmail(email, 'Verify Your Email', `Your OTP is ${otp}`);
-  // Store OTP temporarily (e.g., in-memory or Redis)
+  await authService.register({ email, password, name });
 
   sendResponse(res, {
     success: true,
     statusCode: 201,
-    message: 'User registered. Please verify OTP.',
+    message: 'User registered successfully',
     data: {
       user: {
-        id: newUser._id,
-        email: newUser.email,
-        name: newUser.name,
-        isVerified: newUser.isVerified,
+        email,
+        name,
       },
     },
   });
 });
 
-export const verifyOTP = catchAsync(async (req: Request, res: Response) => {
-  const { email } = req.body;
-  const user = await User.findOne({ email });
-  if (!user) {
-    throw new AppError('User not found', 404);
-  }
-  // Verify OTP (compare with stored OTP)
-  user.isVerified = true;
-  await user.save();
-
-  sendResponse(res, {
-    success: true,
-    statusCode: 200,
-    message: 'Email verified',
-    data: {
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        isVerified: user.isVerified,
-      },
-    },
-  });
-});
-
-export const login = catchAsync(async (req: Request, res: Response) => {
+const login = catchAsync(async (req: Request, res: Response) => {
   const { email, password } = req.body;
+  const token = await authService.login({ email, password });
 
-  const user = await User.findOne({ email });
-  if (!user || user.role !== 'customer') {
-    throw new UnauthorizeError('Invalid credentials');
-  }
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    throw new UnauthorizeError('Invalid credentials');
-  }
-
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET as string,
-    {
-      expiresIn: '1h',
-    }
-  );
   sendResponse(res, {
     success: true,
     statusCode: 200,
@@ -95,30 +34,10 @@ export const login = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const adminLogin = catchAsync(async (req: Request, res: Response) => {
+const adminLogin = catchAsync(async (req: Request, res: Response) => {
   const { identifier, password } = req.body;
+  const token = await authService.adminLogin({ identifier, password });
 
-  const user = await User.findOne({
-    $or: [{ email: identifier }, { phone: identifier }],
-    role: 'admin',
-  });
-
-  if (!user) {
-    throw new UnauthorizeError('Invalid credentials');
-  }
-
-  const isMatch = await bcrypt.compare(password, user.password);
-  if (!isMatch) {
-    throw new UnauthorizeError('Invalid credentials');
-  }
-
-  const token = jwt.sign(
-    { id: user._id, role: user.role },
-    process.env.JWT_SECRET as string,
-    {
-      expiresIn: '1h',
-    }
-  );
   sendResponse(res, {
     success: true,
     statusCode: 200,
@@ -127,27 +46,16 @@ export const adminLogin = catchAsync(async (req: Request, res: Response) => {
   });
 });
 
-export const updateAdminProfile = catchAsync(
-  async (req: Request, res: Response) => {
+const updateAdminProfile = catchAsync(
+  async (req: Request & { user?: JwtPayload }, res: Response) => {
     const { name } = req.body;
     const userId = req.user?.id;
 
     if (!userId) {
-      throw new UnauthorizeError('Unauthorized');
+      throw new Error('Unauthorized');
     }
 
-    const user = await User.findById(userId);
-    if (!user || user.role !== 'admin') {
-      throw new UnauthorizeError('Admin not found');
-    }
-
-    if (name) user.name = name;
-    if (req.file) {
-      const profilePic = await sendImageToCloudinary(req.file);
-      user.profilePic = profilePic;
-    }
-
-    await user.save();
+    const user: IUser = await authService.updateAdminProfile(userId, {name}, req.file);
 
     sendResponse(res, {
       success: true,
@@ -158,65 +66,61 @@ export const updateAdminProfile = catchAsync(
   }
 );
 
-export const forgotPassword = catchAsync(
-  async (req: Request, res: Response) => {
-    const { email } = req.body;
+const getProfile = catchAsync(
+  async (req: Request & { user?: JwtPayload }, res: Response) => {
+    const userId = req.user?.id;
 
-    const user = await User.findOne({ email });
-    if (!user) {
-      throw new AppError('User not found', 404);
+    if (!userId) {
+      throw new Error('Unauthorized'); 
     }
 
-    const resetToken = crypto.randomBytes(20).toString('hex');
-    user.resetPasswordToken = resetToken;
-    user.resetPasswordExpire = new Date(Date.now() + 3600000); // 1 hour
-    await user.save();
-
-    const resetUrl = `http://localhost:5000/api/auth/reset-password/${resetToken}`;
-    await sendEmail(
-      email,
-      'Password Reset',
-      `Reset your password: ${resetUrl}`
-    );
+    const user: IUser = await authService.getProfile(userId);
 
     sendResponse(res, {
       success: true,
       statusCode: 200,
-      message: 'Password reset link sent',
-      data: { resetToken },
+      message: 'Profile retrieved successfully',
+      data: {
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        profilePic: user.profilePic,
+      },
     });
   }
 );
 
-export const resetPassword = catchAsync(async (req: Request, res: Response) => {
-  const { email, token, newPassword } = req.body;
+const forgotPassword = catchAsync(async (req: Request, res: Response) => {
+  const { email } = req.body;
+  await authService.forgotPassword(email);
 
-  const user = await User.findOne({
-    email,
-    resetPasswordToken: token,
-    resetPasswordExpire: { $gt: Date.now() },
+  sendResponse(res, {
+    success: true,
+    statusCode: 200,
+    message: 'Password reset link sent to your email',
+    data: null,
   });
+});
 
-  if (!user) {
-    throw new AppError('Invalid or expired reset token', 400);
-  }
-
-  user.password = newPassword;
-  user.resetPasswordToken = undefined;
-  user.resetPasswordExpire = undefined;
-  await user.save();
+const resetPassword = catchAsync(async (req: Request, res: Response) => {
+  const { email, token, newPassword } = req.body;
+  await authService.resetPassword(email, token, newPassword);
 
   sendResponse(res, {
     success: true,
     statusCode: 200,
     message: 'Password reset successful',
-    data: {
-      user: {
-        id: user._id,
-        email: user.email,
-        name: user.name,
-        isVerified: user.isVerified,
-      },
-    },
+    data: null,
   });
 });
+
+const AuthController = {
+  register,
+  login,
+  adminLogin,
+  forgotPassword,
+  resetPassword,
+  updateAdminProfile,
+  getProfile,
+};
+export default AuthController;

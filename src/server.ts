@@ -1,7 +1,7 @@
 import mongoose from 'mongoose';
 import app from './app';
 
-const PORT = 3000;
+const PORT = 8000;
 // Establish database connection
 export const startServer = async () => {
   const uri =

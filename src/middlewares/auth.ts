@@ -2,11 +2,11 @@ import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import { UnauthorizeError } from '../error/unauthorizeError';
 import { env } from '../config/env';
+import { JwtPayload } from '../types/express';
 
-interface JwtPayload {
-  id: string;
-  role: string;
-}
+
+
+
 
 export const protect = (req: Request, res: Response, next: NextFunction) => {
   const token = req.headers.authorization?.split(' ')[1];
