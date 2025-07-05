@@ -36,6 +36,7 @@ const login = catchAsync(async (req: Request, res: Response) => {
 
 const adminLogin = catchAsync(async (req: Request, res: Response) => {
   const { identifier, password } = req.body;
+  console.log('Admin login attempt with identifier:', req.body);
   const token = await authService.adminLogin({ identifier, password });
 
   sendResponse(res, {

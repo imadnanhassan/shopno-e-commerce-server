@@ -1,10 +1,8 @@
 import UserModel from '../modules/users/user.model';
 import bcrypt from 'bcryptjs';
-import { startServer } from '../server';
+
 export const seedAdmin = async () => {
   try {
-    await startServer();
-
     const adminExists = await UserModel.findOne({
       email: 'abulhassan.dev@gmail.com',
     });
@@ -13,10 +11,10 @@ export const seedAdmin = async () => {
       process.exit();
     }
 
-    const hashedPassword = await bcrypt.hash('admin123', 10);
+    const hashedPassword = await bcrypt.hash('constPassword38', 10);
     const admin = new UserModel({
       email: 'abulhassan.dev@gmail.com',
-      phone: 'constPassword38',
+      phone: '01404503622',
       password: hashedPassword,
       role: 'admin',
       name: 'Adnan Hassan',

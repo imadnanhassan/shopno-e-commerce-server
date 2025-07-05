@@ -25,12 +25,6 @@ export const adminLoginSchema = z.object({
     .min(6, { message: 'Password must be at least 6 characters' }),
 });
 
-// OTP Verification Schema
-export const otpSchema = z.object({
-  email: z.string().email({ message: 'Invalid email address' }),
-  otp: z.string().length(6, { message: 'OTP must be 6 digits' }),
-});
-
 // Forgot Password Schema
 export const forgotPasswordSchema = z.object({
   email: z.string().email({ message: 'Invalid email address' }),

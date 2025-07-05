@@ -59,11 +59,17 @@ const adminLogin = async (input: AdminLoginInput): Promise<string> => {
   if (!user) {
     throw new UnauthorizeError('Invalid credentials');
   }
+
   const isMatch = await bcrypt.compare(password, user.password);
   if (!isMatch) {
     throw new UnauthorizeError('Invalid credentials');
   }
-  const token = jwt.sign({ id: user._id, role: user.role }, env.JWT_SECRET, {
+  const tokenPayload = {
+    sub: user.id.toString(),
+    role: user.role,
+  };
+
+  const token = jwt.sign(tokenPayload, env.JWT_SECRET, {
     expiresIn: '1h',
   });
   return token;

@@ -1,6 +1,6 @@
 import { Router } from 'express';
 import { validate } from '../../middlewares/validate';
-import { adminLoginSchema, forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema, updateProfileSchema } from './auth.schema';
+import {  forgotPasswordSchema, loginSchema, registerSchema, resetPasswordSchema, updateProfileSchema } from './auth.schema';
 import AuthController from './auth.controller';
 import { protect, restrictTo } from '../../middlewares/auth';
 import upload from '../../middlewares/multer';
@@ -12,7 +12,7 @@ AuthRouter.post('/login', validate(loginSchema), AuthController.login);
 
 
 // Admin routes
-AuthRouter.post('/admin/login', validate(adminLoginSchema), AuthController.adminLogin);
+AuthRouter.post('/admin/login', AuthController.adminLogin);
 AuthRouter.patch(
   '/admin/profile',
   protect,
